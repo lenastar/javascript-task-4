@@ -17,8 +17,15 @@ class Event {
 
 function parseEvent(event) {
     let events = [event];
-    if (event.includes('.')) {
-        events.push(event.split('.')[0]);
+    if (!event.includes('.')) {
+        return events;
+    }
+    let current = event;
+    let lastIndex = current.lastIndexOf('.');
+    while (lastIndex > -1) {
+        current = current.slice(0, lastIndex);
+        events.push(current);
+        lastIndex = current.lastIndexOf('.');
     }
 
     return events;
