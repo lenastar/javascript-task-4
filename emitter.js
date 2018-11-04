@@ -4,7 +4,7 @@
  * Сделано задание на звездочку
  * Реализованы методы several и through
  */
-const isStar = true;
+const isStar = false;
 
 class Event {
     constructor(context, handler, expression) {
@@ -70,13 +70,11 @@ function getEmitter() {
          */
         off: function (event, context) {
             console.info(event, context);
-            let subscribes = Array.from(events.keys())
-                .filter(x => x.includes(event));
-            subscribes.forEach(el =>{
-                if (events.has(el)) {
+            Array.from(events.keys())
+                .filter(x => x.includes(event))
+                .forEach(el =>{
                     events.set(el, events.get(el).filter(x => x.context !== context));
-                }
-            });
+                });
 
             return this;
 
