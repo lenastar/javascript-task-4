@@ -13,22 +13,21 @@ class Event {
         this.count = 0;
         this.isAllowed = expression;
     }
-}
 
-function parseEvent(event) {
-    let events = [event];
-    if (!event.includes('.')) {
+    static parseEvent(event) {
+        let events = [];
+        if (!event.includes('.')) {
+            return [event];
+        }
+        let parts = event.split('.');
+        for (let i = 0; i < parts.length; i++) {
+            let arr = parts.slice(0, i + 1);
+            events.push(arr.join('.'));
+        }
+        events = events.reverse();
+
         return events;
     }
-    let current = event;
-    let lastIndex = current.lastIndexOf('.');
-    while (lastIndex > -1) {
-        current = current.slice(0, lastIndex);
-        events.push(current);
-        lastIndex = current.lastIndexOf('.');
-    }
-
-    return events;
 }
 
 
@@ -38,14 +37,24 @@ function parseEvent(event) {
  */
 function getEmitter() {
     let events = new Map();
-    function subscribe(event, context, handler, expression) {
-        if (!events.has(event)) {
-            events.set(event, []);
+    function subscribe(eventName, context, handler, expression) {
+        if (!events.has(eventName)) {
+            events.set(eventName, []);
         }
-        let _event = new Event(context, handler, expression);
-        events.get(event).push(_event);
+        let event = new Event(context, handler, expression);
+        events.get(eventName).push(event);
     }
 
+    function alwaysAllowed(event, context, handler) {
+        subscribe(event, context, handler, () => true);
+    }
+
+    function callEvent(event) {
+        if (event.isAllowed(event.count)) {
+            event.handler.call(event.context);
+        }
+        event.count += 1;
+    }
     return {
 
         /**
@@ -57,7 +66,7 @@ function getEmitter() {
          */
         on: function (event, context, handler) {
             console.info(event, context, handler);
-            subscribe(event, context, handler, () => true);
+            alwaysAllowed(event, context, handler);
 
             return this;
         },
@@ -72,8 +81,9 @@ function getEmitter() {
             console.info(event, context);
             Array.from(events.keys())
                 .filter(x => x === event || x.startsWith(event + '.'))
-                .forEach(el =>{
-                    events.set(el, events.get(el).filter(x => x.context !== context));
+                .forEach(eventName =>{
+                    let subscribes = events.get(eventName);
+                    events.set(eventName, subscribes.filter(x => x.context !== context));
                 });
 
             return this;
@@ -86,17 +96,13 @@ function getEmitter() {
          * @returns {Object} this
          */
         emit: function (event) {
-            let _events = parseEvent(event);
-            for (let i of _events) {
-                if (events.has(i)) {
-                    events.get(i).forEach(x => {
-                        if (x.isAllowed(x.count)) {
-                            x.handler.call(x.context);
-                        }
-                        x.count += 1;
-                    });
-                }
-            }
+            let _events = Event.parseEvent(event);
+            _events
+                .filter(eventName => events.has(eventName))
+                .forEach(eventName => {
+                    events.get(eventName)
+                        .forEach(callEvent);
+                });
 
             return this;
         },
