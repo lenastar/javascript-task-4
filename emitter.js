@@ -55,6 +55,7 @@ function getEmitter() {
         }
         event.count += 1;
     }
+
     return {
 
         /**
